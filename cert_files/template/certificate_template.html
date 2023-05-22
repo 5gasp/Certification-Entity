@@ -1,0 +1,149 @@
+﻿<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<style>
+body {
+    font-family: Calibri, sans-serif;
+    text-align: center;
+    font-size: 1em;
+}
+footer {
+    text-align: left;
+    font-size: 0.7em;
+}
+table, th, tr, td {
+    border: 1px solid #555;
+    border-collapse: collapse;
+}
+table {
+    align: center;
+    width: 100%;
+    break-inside: auto;
+}
+tr {
+    break-inside: avoid;
+    break-after: auto;
+}
+td, th {
+    padding: 0.4em;
+}
+.logo-center {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    width: 40%;
+}
+.img-center {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    width: 80%;
+}
+@media screen {
+    body {
+        width: 21cm;
+        height: 29.7cm;
+        margin: 20mm !important;
+    }
+}
+@media print {
+    body {
+        margin: 0 !important;
+        font-size: 14px;
+    }
+    td, th {
+        font-size: 0.9em;
+    }
+    td {
+        text-align: left !important;
+    }
+    @page {
+        width: 21cm;
+        height: 29.7cm;
+        margin: 15mm 20mm !important;
+    }
+}
+</style>
+</head>
+<body>
+<header>
+    <img src="template/5gasp_logo.png" alt="5GASP Logo" class="logo-center" />
+</header>
+<p>
+    <span style="font-size:2em">Certificate Of Compliance</span>
+</p>
+<p>
+    <span style="font-size:2em">${grade}</span>
+</p>
+<br>
+<p>
+    This is to certify that
+</p>
+<p>
+    <i>${app_name}</i>
+</p>
+<br>
+<p>
+    Registered by
+</p>
+<p>
+    <i>${author}</i>
+</p>
+<br>
+<p>
+    Has been developed in accordance with the 5G Application and Services experimentation and certification Platform (5GASP) guidelines.
+</p>
+<br>
+<p>
+    <img src="${chart}" class="img-center"/>
+</p>
+<p>
+    The 5GASP Certification board verified that <i>${app_name}</i> on its version <i>${app_version}</i> has successfully
+    passed the 5GASP-C certification criteria under the following scenarios:
+</p>
+<table>
+    <tr>
+        <th style="width:20%">Date</th>
+        <th style="width:20%">Axis</th>
+        <th style="width:20%">Name of test**</th>
+        <th style="width:15%">Type of test</th>
+        <th style="width:10%">Testbed of experimentation / Execution Partner</th>
+        <th style="width:15%">Test result</th>
+    </tr>
+    ${test_cases}
+</table>
+<p style="text-align:left">
+    ** For more details, please check the test description in ${tc_link}
+</p>
+<br>
+<p style="text-align:left">
+    <i>Observations [optional]: Environment, test topology</i>
+    <br>
+    <br>
+    <br>
+</p>
+<p>
+    Signed on <i>${sign_date}</i>
+</p>
+<br>
+<p>
+    ______________________
+</p>
+<p>
+    Signature ${tcc}
+</p>
+<br><br>
+
+<footer>
+<div style="display:flex">
+    <div style="float:left; vertical-align:center">
+        5GASP - This project has received funding from the European Union's Horizon 2020 research
+        and innovation programme (5GASP H2020 – ICT- 2020). Grant agreement ID: 101016448
+    </div>
+    <div style="float:right; margin-right:15mm">
+        <img src="template/ec_logo.png" alt="European Commission Logo" width="140" style="vertical-align:center"/>
+    </div>
+</div>
+</footer>
+</body>
+</html>

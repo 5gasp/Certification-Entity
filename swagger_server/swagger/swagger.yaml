@@ -1,0 +1,145 @@
+openapi: 3.0.3
+info:
+  title: Certification Entity API
+  description: REST API of the 5GASP Certification Entity
+  version: "0.2"
+servers:
+- url: /
+tags:
+- name: certification
+  description: ""
+paths:
+  /:
+    get:
+      tags:
+      - certification
+      summary: Get server info
+      operationId: get_server_info
+      responses:
+        "200":
+          description: Basic server info
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerInfo'
+      x-openapi-router-controller: swagger_server.controllers.certification_controller
+  /certificate:
+    get:
+      tags:
+      - certification
+      summary: Get the certificate for a testing (identified by the test_id)
+      operationId: get_cert
+      parameters:
+      - name: test_id
+        in: query
+        required: true
+        style: form
+        explode: true
+        schema:
+          title: test_id
+          type: integer
+      - name: access_token
+        in: query
+        required: true
+        style: form
+        explode: true
+        schema:
+          title: access_token
+          type: string
+      responses:
+        "200":
+          description: Certificate is available
+          content:
+            application/pdf:
+              schema:
+                type: string
+                description: Certificate as PDF
+                format: binary
+                x-content-type: application/pdf
+        "403":
+          description: Access token is not correct
+        "404":
+          description: There is no certificate for this test_id
+      x-openapi-router-controller: swagger_server.controllers.certification_controller
+    post:
+      tags:
+      - certification
+      summary: Create a certificate for a testing (identified by the test_id)
+      operationId: create_cert
+      requestBody:
+        description: Create a certificate
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCert'
+        required: true
+      responses:
+        "200":
+          description: "Request has been executed, but the certificate will not be\
+            \ created. The minimum grade of bronze was not achieved."
+        "201":
+          description: Certificate has been created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CertCreated'
+        "401":
+          description: Login required or wrong credentials
+        "404":
+          description: test_id or test results could not be found
+        "409":
+          description: Certificate has already been created
+        "500":
+          description: Could not save certificate
+      security:
+      - basicAuth: []
+      x-openapi-router-controller: swagger_server.controllers.certification_controller
+components:
+  schemas:
+    ServerInfo:
+      type: object
+      properties:
+        name:
+          type: string
+        version:
+          type: string
+      example:
+        name: name
+        version: version
+    CreateCert:
+      required:
+      - access_token
+      - app_author
+      - app_name
+      - app_version
+      - test_id
+      type: object
+      properties:
+        test_id:
+          type: integer
+          description: test_id from CI/CD Manager to query test details and results
+          format: int64
+        access_token:
+          type: string
+          description: access_token from CI/CD Manager for test_id
+        app_name:
+          type: string
+          description: Name of the Network App
+        app_version:
+          type: string
+          description: Version of the Network App
+        app_author:
+          type: string
+          description: Author or who registered the Network App
+    CertCreated:
+      type: object
+      properties:
+        certificate:
+          type: string
+          description: URL pointing to the certificate
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
+      x-basicInfoFunc: swagger_server.controllers.authorization_controller.check_basicAuth
+
