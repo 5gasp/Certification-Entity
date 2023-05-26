@@ -2,6 +2,7 @@
 
 import connexion
 
+from swagger_server import __init__
 from swagger_server import encoder
 
 app = connexion.App(__name__, specification_dir='./swagger/')

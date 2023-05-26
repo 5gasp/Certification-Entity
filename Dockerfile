@@ -14,6 +14,7 @@ COPY requirements.txt /usr/src/app/
 RUN pip3 install --no-cache-dir -r requirements.txt
 
 RUN (getent group apache || groupadd apache) && useradd -m worker -p worker && usermod -a -G apache worker
+RUN chown worker:apache /usr/src/app
 
 COPY --chown=worker:apache . /usr/src/app
 
