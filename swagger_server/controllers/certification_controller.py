@@ -53,9 +53,9 @@ def create_cert(body):  # noqa: E501
             }
         })
         # Get all required data
-        base_info = cert.get_test_info('base', body.test_id, body.access_token)
-        results = cert.get_test_info('results', body.test_id, body.access_token)
-        test_cases = cert.get_test_info('test_cases', body.test_id, body.access_token)
+        base_info, err_msg_1 = cert.get_test_info('base', body.test_id, body.access_token)
+        results, err_msg_2 = cert.get_test_info('results', body.test_id, body.access_token)
+        test_cases, err_msg_3 = cert.get_test_info('test_cases', body.test_id, body.access_token)
         if all([base_info, results, test_cases]):
             logger.debug(f"{msg_prefix}: All required info retrieved")
             base_info.update({
@@ -64,9 +64,12 @@ def create_cert(body):  # noqa: E501
                 'app_author': body.app_author,
             })
             # Create certificate
-            filenames = cert.create_certificate(base_info, results, test_cases)
-            if filenames:
-                radar_chart, cert_file = filenames
+            output = cert.create_certificate(base_info, results, test_cases)
+            if isinstance(output, str):
+                cert_data[body.test_id]['status'] = c.status_error
+                return output, 404
+            elif output:
+                radar_chart, cert_file = output
                 cert_data.update({
                     body.test_id: {
                         'access_token': body.access_token,
@@ -90,9 +93,10 @@ def create_cert(body):  # noqa: E501
                 return ("Request has been executed, but the certificate will not be created. "
                         "The minimum grade of bronze was not achieved."), 200
         else:
+            all_err_msg = ' '.join([err_msg_1, err_msg_2, err_msg_3])
             cert_data[body.test_id]['status'] = c.status_error
-            return ("Could not fetch all required data from the CI/CD Manager to create the certificate. "
-                    "test_id or access_token might be incorrect or the CI/CD Manager is unreachable."), 404
+            return (f"Could not fetch all required data from the CI/CD Manager to create the certificate: "
+                    f"{all_err_msg}"), 404
 
 
 def get_cert(test_id, access_token):  # noqa: E501

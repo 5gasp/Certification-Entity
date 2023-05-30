@@ -1,7 +1,6 @@
 """
 5GASP Certification Entity
 """
-import json
 import os
 import string
 from datetime import date
@@ -36,7 +35,8 @@ def _get_testbed_name(id_):
 
 
 def _build_base_dictionary(base_info, results, test_cases):
-    """Build the base dictionary with this structure:
+    """Check for the required data in the responses from the CI/CD Manager. Build the base dictionary with this
+    structure:
     axis:
         test_case:
             weight: int
@@ -55,38 +55,74 @@ def _build_base_dictionary(base_info, results, test_cases):
     :param test_cases: test case info
     :type test_cases: dict
 
-    :return: base dictionary
-    :rtype: dict
+    :return: base dictionary, error message
+    :rtype: dict, str
     """
-    test_bed = base_info['testbed_id']
-    test_cases = test_cases['tests'][test_bed]
+    test_bed = base_info.get('testbed_id')
+    if not test_bed:
+        return {}, ("Could not find the key 'testbed_id' in test base information from CI/CD Manager "
+                    "(/gui/test-base-information) or it was empty.")
+    test_cases = test_cases.get('tests')
+    if not test_cases:
+        return {}, "Could not find the key 'tests' in test case data from CI/CD Manager (/tests/all) or it was empty."
+    test_cases = test_cases.get(test_bed)
+    if not test_cases:
+        return {}, f"Could not find tests for '{test_bed}' in test case data from CI/CD Manager (/tests/all)."
+
     base_dict = {
         c.axis_1: {},
         c.axis_2: {},
         c.axis_3: {},
         c.axis_4: {},
     }
+    err_msg = []
+    msg_tc = "For test case '{0}': Could not find the key '{1}' or its value '{2}' is invalid."
     for test, info in test_cases.items():
-        axis = info['axis']
+        axis = info.get('axis')
+        if axis not in c.axis_names:
+            err_msg.append(msg_tc.format(test, 'axis', axis))
+        weight = info.get('weight')
+        if not isinstance(weight, int) and 1 <= weight <= 10:
+            err_msg.append(msg_tc.format(test, 'weight', weight))
+        mandatory = info.get('mandatory')
+        if not isinstance(mandatory, bool):
+            err_msg.append(msg_tc.format(test, 'mandatory', mandatory))
         tc_info = {
-            'weight': info['weight'],
-            'mandatory': info['mandatory'],
+            'weight': weight,
+            'mandatory': mandatory,
             'results': [],
             'start_time': '',
         }
-        base_dict[axis].update({test: tc_info})
+        tmp_dict = base_dict.get(axis, {})
+        tmp_dict.update({test: tc_info})
+        base_dict.update({axis: tmp_dict})
 
+    msg_result = "For test result '{0}': Could not find the key '{1}' or its value '{2}' is invalid."
     for test in results:
-        tc_id = test['original_test_name']
-        tc_result = test['success']
-        if test['is_developer_defined']:
+        if test.get('is_developer_defined'):
             continue
+        performed = test.get('performed_test', '')
+        tc_result = test.get('success')
+        if not isinstance(tc_result, bool):
+            err_msg.append(msg_result.format(performed, 'success', tc_result))
+        start_time = test.get('start_time')
+        if not start_time:
+            err_msg.append(msg_result.format(performed, 'start_time', start_time))
+        tc_id = test.get('original_test_name')
+        if not tc_id:
+            err_msg.append(msg_result.format(performed, 'original_test_name', tc_id))
         else:
-            axis = test_cases[tc_id]['axis']
-            base_dict[axis][tc_id]['start_time'] = test['start_time']
-        base_dict[axis][tc_id]['results'].append(tc_result)
+            tc = test_cases.get(tc_id)
+            if tc:
+                axis = tc.get('axis')
+                tmp_dict = base_dict.get(axis, {}).get(tc_id, {})
+                tmp_dict['start_time'] = start_time
+                tmp_result = tmp_dict.get('results', [])
+                tmp_result.append(tc_result)
+            else:
+                err_msg.append(f"Could not find test '{tc_id}' in test case database (/tests/all).")
 
-    return base_dict
+    return base_dict, ' '.join(err_msg)
 
 
 def _calculate_axis_scores(base_dict):
@@ -296,8 +332,8 @@ def get_test_info(info_type, test_id, access_token):
     :param access_token:
     :type access_token: str
 
-    :return: data dictionary
-    :rtype: dict or None
+    :return: data dictionary, error message
+    :rtype: dict, str
     """
     params = {
         'test_id': test_id,
@@ -313,7 +349,7 @@ def get_test_info(info_type, test_id, access_token):
         uri = '/tests/all'
         params = {}
     else:
-        return
+        return {}, "Unknown info type"
     msg_prefix = f"test_id '{test_id}' with '{uri}'"
 
     logger.debug(f"{msg_prefix}: Get data")
@@ -323,12 +359,17 @@ def get_test_info(info_type, test_id, access_token):
             payload = response.json()
             logger.debug(f"{msg_prefix}: Received data: {payload}")
             data = payload.get('data')
-            return data
+            return data, ""
         else:
-            logger.error(f"{msg_prefix}: Could not get data: <{response.status_code}> {response}")
+            err_msg = f"Could not get data from CI/CD Manager: <{response.status_code}> {response.text}."
+            logger.error(f"{msg_prefix}: {err_msg}")
     except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
-        logger.error(f"Cannot connect to CI/CD Manager: {e}")
-    return None
+        err_msg = "Cannot connect to CI/CD Manager."
+        logger.error(f"{err_msg}: {e}")
+    except requests.exceptions.JSONDecodeError as e:
+        err_msg = f"Response from {uri} could not be JSON decoded."
+        logger.error(f"{err_msg}: {e}")
+    return {}, err_msg
 
 
 def create_certificate(base_info, results, test_cases):
@@ -341,10 +382,12 @@ def create_certificate(base_info, results, test_cases):
     :param test_cases: test case info
     :type test_cases: dict
 
-    :return: filenames of radar chart and certificate file
-    :rtype: (str, str)
+    :return: If successful, return filenames of radar chart and certificate file. Otherwise, return an error message.
+    :rtype: (str, str) or str or None
     """
-    base_dict = _build_base_dictionary(base_info, results, test_cases)
+    base_dict, err_msg = _build_base_dictionary(base_info, results, test_cases)
+    if err_msg:
+        return err_msg
     scores = _calculate_axis_scores(base_dict)
     radar_chart = f"{base_info['test_id']}_radar_chart.png"
     _create_radar_chart(scores, radar_chart)
