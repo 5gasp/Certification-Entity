@@ -15,7 +15,7 @@ users = {
 # ----------
 cicd_manager_base = 'https://ci-cd-manager.5gasp.eu/manager'
 sign_date_format = '%d/%m/%Y'
-test_info_link = 'https://5gasp.eu/somelink_to_testcases'
+cicd_service_page = 'https://ci-cd-service.5gasp.eu/dashboard/test-information.html'
 
 # Test axis numbers
 axis_1 = 1

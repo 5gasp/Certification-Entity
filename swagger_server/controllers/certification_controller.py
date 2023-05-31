@@ -59,9 +59,11 @@ def create_cert(body):  # noqa: E501
         if all([base_info, results, test_cases]):
             logger.debug(f"{msg_prefix}: All required info retrieved")
             base_info.update({
+                'access_token': body.access_token,
                 'app_name': body.app_name,
                 'app_version': body.app_version,
                 'app_author': body.app_author,
+                'service_order': body.service_order,
             })
             # Create certificate
             output = cert.create_certificate(base_info, results, test_cases)

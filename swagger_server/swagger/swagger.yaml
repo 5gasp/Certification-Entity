@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: Certification Entity API
   description: REST API of the 5GASP Certification Entity
-  version: "0.2"
+  version: "0.3"
 servers:
 - url: /
 tags:
@@ -86,7 +86,7 @@ paths:
         "401":
           description: Login required or wrong credentials
         "404":
-          description: test_id or test results could not be found
+          description: Could not gather data or data missing
         "409":
           description: Certificate has already been created
         "500":
@@ -112,6 +112,7 @@ components:
       - app_author
       - app_name
       - app_version
+      - service_order
       - test_id
       type: object
       properties:
@@ -131,6 +132,9 @@ components:
         app_author:
           type: string
           description: Author or who registered the Network App
+        service_order:
+          type: string
+          description: Link to the service order of the Network App on NODS
     CertCreated:
       type: object
       properties:

@@ -41,9 +41,9 @@ Provide the hostname and server certificate files in the command, then run it fr
 (`--processes` could be twice the number of CPUs):
 ```commandline
 mod_wsgi-express start-server wsgi.py --processes 4 --port 8080 \
-  --https-only --https-port=8443 --server-name=<HOSTNAME> \
-  --ssl-certificate-file='<ABSOLUTE PATH>' \
-  --ssl-certificate-key-file='<ABSOLUTE PATH>'
+    --https-only --https-port=8443 --server-name=<HOSTNAME> \
+    --ssl-certificate-file='<ABSOLUTE PATH>' \
+    --ssl-certificate-key-file='<ABSOLUTE PATH>'
 ```
 
 #### HTTP
@@ -93,7 +93,7 @@ Create certificate
 curl -i -X POST https://<HOST>:<PORT>/certificate --basic -u 'testuser:arXKcZKv610q9geHqOoZZzEW' \
   -H 'Content-Type:application/json' \
   -d '{"test_id": 18, "access_token": "qmegiqsyvynzqkvm", "app_name": "YoGoKo-CITS-NetApp", 
-       "app_version": "1.0", "app_author": "YoGoKo"}'
+       "app_version": "1.0", "app_author": "YoGoKo", "service_order": "https://nods_link"}'
 ```
 If the certificate was successfully created, the call returns an URL. Call the URL in a browser to download the
 certificate.

@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import requests
 import requests.exceptions
+from flask import Markup
 from weasyprint import HTML
 
 from swagger_server import constants as c
@@ -260,7 +261,8 @@ def _generate_certificate(base_dict, axis_scores, base_info, chart_file, filenam
     elif len(bronze) > 0 and all(bronze):
         grade = c.grade_bronze
     else:
-        return False
+        grade = ""
+        # return False
 
     # Create test case table entries
     test_bed = _get_testbed_name(base_info['testbed_id'])
@@ -302,6 +304,7 @@ def _generate_certificate(base_dict, axis_scores, base_info, chart_file, filenam
             rows.append(row)
 
     current_date = date.today().strftime(c.sign_date_format)
+    tc_link = f"{c.cicd_service_page}?test_id={base_info['test_id']}&access_token={base_info['access_token']}"
     with open(c.cert_template, 'r') as f:
         template = string.Template(f.read())
     cert = template.substitute(
@@ -311,9 +314,9 @@ def _generate_certificate(base_dict, axis_scores, base_info, chart_file, filenam
         author=base_info['app_author'],
         chart=chart_file,
         test_cases=''.join(rows),
-        tc_link=c.test_info_link,
+        tc_link=Markup(tc_link),
+        env_info=Markup(base_info['service_order']),
         sign_date=current_date,
-        tcc='[TCC]',
     )
     file = os.path.join(c.cert_files_dir, filename)
     with open(file, 'w') as f:

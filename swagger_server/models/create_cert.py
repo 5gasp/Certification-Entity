@@ -14,7 +14,8 @@ class CreateCert(Model):
 
     Do not edit the class manually.
     """
-    def __init__(self, test_id: int=None, access_token: str=None, app_name: str=None, app_version: str=None, app_author: str=None):  # noqa: E501
+    def __init__(self, test_id: int=None, access_token: str=None, app_name: str=None, app_version: str=None,
+                 app_author: str=None, service_order: str=None):  # noqa: E501
         """CreateCert - a model defined in Swagger
 
         :param test_id: The test_id of this CreateCert.  # noqa: E501
@@ -27,13 +28,16 @@ class CreateCert(Model):
         :type app_version: str
         :param app_author: The app_author of this CreateCert.  # noqa: E501
         :type app_author: str
+        :param service_order: The service_order of this CreateCert.  # noqa: E501
+        :type service_order: str
         """
         self.swagger_types = {
             'test_id': int,
             'access_token': str,
             'app_name': str,
             'app_version': str,
-            'app_author': str
+            'app_author': str,
+            'service_order': str
         }
 
         self.attribute_map = {
@@ -41,13 +45,15 @@ class CreateCert(Model):
             'access_token': 'access_token',
             'app_name': 'app_name',
             'app_version': 'app_version',
-            'app_author': 'app_author'
+            'app_author': 'app_author',
+            'service_order': 'service_order'
         }
         self._test_id = test_id
         self._access_token = access_token
         self._app_name = app_name
         self._app_version = app_version
         self._app_author = app_author
+        self._service_order = service_order
 
     @classmethod
     def from_dict(cls, dikt) -> 'CreateCert':
@@ -184,3 +190,28 @@ class CreateCert(Model):
             raise ValueError("Invalid value for `app_author`, must not be `None`")  # noqa: E501
 
         self._app_author = app_author
+
+    @property
+    def service_order(self) -> str:
+        """Gets the service_order of this CreateCert.
+
+        Link to the service order of the Network App on NODS  # noqa: E501
+
+        :return: The service_order of this CreateCert.
+        :rtype: str
+        """
+        return self._service_order
+
+    @service_order.setter
+    def service_order(self, service_order: str):
+        """Sets the service_order of this CreateCert.
+
+        Link to the service order of the Network App on NODS  # noqa: E501
+
+        :param service_order: The service_order of this CreateCert.
+        :type service_order: str
+        """
+        if service_order is None:
+            raise ValueError("Invalid value for `service_order`, must not be `None`")  # noqa: E501
+
+        self._service_order = service_order
