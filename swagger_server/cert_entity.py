@@ -149,17 +149,19 @@ def _calculate_axis_scores(base_dict):
             is_mandatory = info['mandatory']
             if is_mandatory:
                 m_num_tests += 1
+            else:
+                o_weight_sum = o_weight_sum + info['weight']
             if len(info['results']) == 0:
                 continue
             tc_result = all(info['results'])  # Combine sub test results
-            o_weight_sum = o_weight_sum + info['weight']
             if tc_result:
-                o_result_sum = o_result_sum + info['weight']
                 if is_mandatory:
                     m_num_passed += 1
+                else:
+                    o_result_sum = o_result_sum + info['weight']
 
         m_score = 1 if m_num_tests and m_num_tests == m_num_passed else 0
-        o_score = (o_result_sum / o_weight_sum) * 10 if o_weight_sum else 1
+        o_score = (o_result_sum / o_weight_sum) * 10 if o_result_sum else 1
         axis_scores.update({axis: m_score * o_score})
     return axis_scores
 
