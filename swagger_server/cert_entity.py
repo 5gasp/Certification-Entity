@@ -307,7 +307,7 @@ def _generate_certificate(base_dict, axis_scores, base_info, chart_file, filenam
 
     current_date = date.today().strftime(c.sign_date_format)
     tc_link = f"{c.cicd_service_page}?test_id={base_info['test_id']}&access_token={base_info['access_token']}"
-    with open(c.cert_template, 'r') as f:
+    with open(c.cert_template, 'r', encoding='utf-8') as f:
         template = string.Template(f.read())
     cert = template.substitute(
         grade=grade,
@@ -321,7 +321,7 @@ def _generate_certificate(base_dict, axis_scores, base_info, chart_file, filenam
         sign_date=current_date,
     )
     file = os.path.join(c.cert_files_dir, filename)
-    with open(file, 'w') as f:
+    with open(file, 'w', encoding='utf-8') as f:
         f.write(cert)
     logger.debug(f"{msg_prefix}: Certificate created")
     return True
