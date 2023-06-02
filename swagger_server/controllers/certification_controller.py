@@ -42,7 +42,7 @@ def create_cert(body):  # noqa: E501
         body = CreateCert.from_dict(connexion.request.get_json())  # noqa: E501
         if body.test_id in cert_data:
             if cert_data[body.test_id]['status'] == c.status_finished:
-                
+                # API_CERTIFICATE_ENDPOINT overrides the base url
                 url = f"{API_CERTIFICATE_ENDPOINT or request.base_url}?test_id={body.test_id}&access_token={body.access_token}"
                 return {"message":"The certificate for this ID has already been created.", "certificate": url}, 409
             elif cert_data[body.test_id]['status'] == c.status_progress:
@@ -89,6 +89,7 @@ def create_cert(body):  # noqa: E501
                     # Throws werkzeug.routing.exceptions.BuildError, endpoint can't be found
                     # url = url_for('certificate', _method=get_cert, _external=True,
                     #               values={'test_id': body.test_id, 'access_token': body.access_token})
+                    # API_CERTIFICATE_ENDPOINT overrides the base url
                     url = f"{API_CERTIFICATE_ENDPOINT or request.base_url}?test_id={body.test_id}&access_token={body.access_token}"
                     return {'certificate': url}, 200
                 else:
