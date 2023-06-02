@@ -8,3 +8,4 @@ matplotlib >= 3.3.4
 numpy >= 1.19.5
 weasyprint == 58.1
 mod-wsgi == 4.9.4
+redis==4.5.5

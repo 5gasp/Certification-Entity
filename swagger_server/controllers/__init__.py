@@ -1,20 +1,14 @@
-import json
 import logging
+import redis
+import os
 from logging.handlers import TimedRotatingFileHandler
-
 from swagger_server import constants as c
 
-# Load database file, structure:
-# test_id:
-#     access_token:
-#     status:
-#     cert:
-#     chart:
-# test_id:
-#     ...
-with open(c.database, 'r') as f:
-    cert_data = json.load(f)
-cert_data = {int(k): v for k, v in cert_data.items()}
+# Read REDIS Location
+REDIS_LOCATION = os.environ.get('REDIS_LOCATION')
+pool = redis.ConnectionPool(host=REDIS_LOCATION, port=6379, db=0)
+mRedis = redis.Redis(connection_pool=pool)
+
 
 logger = logging.getLogger('cert_entity')
 if logger.hasHandlers():
