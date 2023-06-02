@@ -40,7 +40,8 @@ def create_cert(body):  # noqa: E501
         body = CreateCert.from_dict(connexion.request.get_json())  # noqa: E501
         if body.test_id in cert_data:
             if cert_data[body.test_id]['status'] == c.status_finished:
-                return "The certificate for this ID has already been created.", 409
+                url = f"{request.base_url}?test_id={body.test_id}&access_token={body.access_token}"
+                return {"message":"The certificate for this ID has already been created.", "certificate": url}, 409
             elif cert_data[body.test_id]['status'] == c.status_progress:
                 return "This certificate is currently being created, please wait.", 409
 
