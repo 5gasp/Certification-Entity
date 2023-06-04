@@ -36,10 +36,24 @@ pip3 install -r requirements.txt
 
 ### Start the server
 
+The Certification Entity relies on a Redis instance to store certificates-related infromation. Thus, you have to run a redis docker image before starting the server:
+
+```bash
+docker run -d -p 6379:6379 --name redis -e ALLOW_EMPTY_PASSWORD=yes bitnami/redis:6.2.12
+```
+
+Fruthermore, you'll also need to create some env. variables to map redis' location:
+
+```bash
+export REDIS_HOST=127.0.0.1
+export REDIS_PORT=6379
+```
+
 #### HTTPS
 Provide the hostname and server certificate files in the command, then run it from the root directory
 (`--processes` could be twice the number of CPUs):
-```commandline
+
+```bash
 mod_wsgi-express start-server wsgi.py --processes 4 --port 8080 \
     --https-only --https-port=8443 --server-name=<HOSTNAME> \
     --ssl-certificate-file='<ABSOLUTE PATH>' \
@@ -47,26 +61,40 @@ mod_wsgi-express start-server wsgi.py --processes 4 --port 8080 \
 ```
 
 #### HTTP
+
 In the root directory, run (`--processes` could be twice the number of CPUs):
-```commandline
+```bash
 mod_wsgi-express start-server wsgi.py --processes 4 --port 8080
 ```
+
+#### Additional Configuration
+
+If the server is running behind a reverse proxy, you may need to perform some additional configurations, as to make sure the url through which the certificate will become available corresponds to your reverse proxy.
+To do this, you may rely on the `API_CERTIFICATE_ENDPOINT` environment variable. E.g.:
+
+```bash
+export API_CERTIFICATE_ENDPOINT=https://ci-cd-service.5gasp.eu/certification-entity/certificate
+```
+
+After exporting this variable, you'll need to relaunch the server.
+This env. variable can also be used with the docker image.
+
 
 ## Running with Docker
 
 To run the server on a Docker container, execute the following from the root directory:
 
 For HTTP:
-```commandline
+```bash
 # building the image
 docker build -t cert_entity .
 
 # starting up a container for HTTP
-docker run -d --name cert_entity -p 8080:8080 cert_entity
+docker run -d --name cert_entity -p 8080:8080 -e REDIS_HOST=<redis_host>  -e REDIS_PORT=<redis_port> cert_entity
 ```
 
 For HTTPS, you need to copy the certificate files into the root directory first:
-```commandline
+```bash
 # copy server certificate files, use the below filenames
 cp <ABSOLUTE PATH> ssl_cert.pem
 cp <ABSOLUTE PATH> ssl_cert_key.pem
@@ -78,6 +106,7 @@ docker build -t cert_entity .
 docker run -d --name cert_entity \
     -p 8443:8443 \
     -p 8080:8080 \
+    -e REDIS_HOST=<redis_host>  -e REDIS_PORT=<redis_port> \
     cert_entity \
     --processes 4 \
     --https-only \
@@ -85,6 +114,15 @@ docker run -d --name cert_entity \
     --ssl-certificate-key-file ssl_cert_key.pem \
     --server-name <HOST>
 ```
+
+## Running with Docker Compose
+
+From the root folder, simply execute:
+
+```bash
+docker compose up -d # or docker-compose up -d
+```
+
 
 ## Example call
 

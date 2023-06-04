@@ -5,8 +5,9 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - API_CERTIFICATE_ENDPOINT=https://ci-cd-service.5gasp.eu/certification-entity/certificate
-      - REDIS_LOCATION=redis
+      #- API_CERTIFICATE_ENDPOINT=https://ci-cd-service.5gasp.eu/certification-entity/certificate
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
   
   redis:
     image: 'bitnami/redis:6.2.12'
