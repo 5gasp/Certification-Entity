@@ -31,9 +31,9 @@ def create_cert(body):  # noqa: E501
             if int(mRedis.get(f"{body.test_id}_status").decode()) == c.status_finished:
                 # API_CERTIFICATE_ENDPOINT overrides the base url
                 url = f"{API_CERTIFICATE_ENDPOINT or request.base_url}?test_id={body.test_id}&access_token={body.access_token}"
-                return {"message":"The certificate for this ID has already been created.", "certificate": url}, 409
+                return {"message":"The certificate for this ID has already been created.", "certificate": url}, 208
             elif int(mRedis.get(f"{body.test_id}_status").decode()) == c.status_progress:
-                return "This certificate is currently being created, please wait.", 409
+                return "This certificate is currently being created, please wait.", 208
 
         msg_prefix = f"test_id '{body.test_id}'"
         logger.info(f"{msg_prefix}: Start creating certificate")
