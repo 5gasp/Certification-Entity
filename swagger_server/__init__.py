@@ -15,6 +15,6 @@ if not os.path.exists(c.database):
         f.write('{}')
 
 # Verify that the required files for certificate creation are present.
-for file in [c.cert_template, c.logo_ec, c.logo_5gasp]:
+for file in [c.cert_template, c.cert_failed_template, c.logo_ec, c.logo_5gasp]:
     if not os.path.exists(c.cert_template):
         raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), file)

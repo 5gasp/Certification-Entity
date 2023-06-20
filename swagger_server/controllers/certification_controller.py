@@ -64,21 +64,19 @@ def create_cert(body):  # noqa: E501
                 mRedis.set(f"{body.test_id}_status", c.status_error)
                 return output, 404
             elif output:
-                radar_chart, cert_file = output                
+                is_cert, radar_chart, cert_file = output
                 # Redis
                 mRedis.set(f"{body.test_id}_access_token", body.access_token)
-                mRedis.set(f"{body.test_id}_status", c.status_finished)
+                mRedis.set(f"{body.test_id}_status", c.status_finished if is_cert else c.status_finished_no_cert)
                 mRedis.set(f"{body.test_id}_cert", f'{cert_file}.pdf')
                 mRedis.set(f"{body.test_id}_chart", radar_chart)
                 
                 # API_CERTIFICATE_ENDPOINT overrides the base url
                 url = f"{API_CERTIFICATE_ENDPOINT or request.base_url}?test_id={body.test_id}&access_token={body.access_token}"
                 return {'certificate': url}, 200
-               
             else:
-                mRedis.set(f"{body.test_id}_status", c.status_finished_no_cert)
-                return ("Request has been executed, but the certificate will not be created. "
-                        "The minimum grade of bronze was not achieved."), 200
+                mRedis.set(f"{body.test_id}_status", c.status_error)
+                return "Unexpected error occurred while creating certificate.", 500
         else:
             all_err_msg = ' '.join([err_msg_1, err_msg_2, err_msg_3])
             mRedis.set(f"{body.test_id}_status", c.status_error)

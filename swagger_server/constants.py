@@ -39,12 +39,15 @@ grade_bronze = 'Bronze'
 grade_silver = 'Silver'
 grade_gold = 'Gold'
 
+# Weight for category
+weight_mandatory = 1
+weight_optional = 10
 # Minimum requirements
 min_requirements = {
-    axis_1: 1,
-    axis_2: 1,
-    axis_3: 1,
-    axis_4: 1,
+    axis_1: weight_mandatory,
+    axis_2: weight_mandatory,
+    axis_3: weight_mandatory,
+    axis_4: weight_mandatory,
 }
 
 # Colours for test result column
@@ -65,6 +68,7 @@ template_dir = os.path.join(cert_files_dir, 'template')
 # Files
 database = os.path.join(cert_files_dir, 'database.json')
 cert_template = os.path.join(template_dir, 'certificate_template.html')
+cert_failed_template = os.path.join(template_dir, 'cert_failed_template.html')
 logo_ec = os.path.join(template_dir, 'ec_logo.png')
 logo_5gasp = os.path.join(template_dir, '5gasp_logo.png')
 log_file = os.path.join(log_dir, 'app_server.log')

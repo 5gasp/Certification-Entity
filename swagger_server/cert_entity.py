@@ -160,8 +160,8 @@ def _calculate_axis_scores(base_dict):
                 else:
                     o_result_sum = o_result_sum + info['weight']
 
-        m_score = 1 if m_num_tests and m_num_tests == m_num_passed else 0
-        o_score = (o_result_sum / o_weight_sum) * 10 if o_result_sum else 1
+        m_score = c.weight_mandatory if m_num_tests and m_num_tests == m_num_passed else 0
+        o_score = (o_result_sum / o_weight_sum) * c.weight_optional if o_result_sum else 1
         axis_scores.update({axis: m_score * o_score})
     return axis_scores
 
@@ -234,7 +234,7 @@ def _create_radar_chart(axis_scores, filename, show_min=True):
 
 def _generate_certificate(base_dict, axis_scores, base_info, chart_file, filename):
     """Generate a certificate based on the axis scores and grading definition. If the minimum grade of bronze is not
-    achieved, do not create certificate.
+    achieved, create a document with the intermediary results.
 
     :param base_dict: dictionary from _build_base_dictionary()
     :type base_dict: dict
@@ -244,11 +244,11 @@ def _generate_certificate(base_dict, axis_scores, base_info, chart_file, filenam
     :type base_info: dict
     :param chart_file: filename of the chart to include
     :type chart_file: str
-    :param filename: filename for the certificate
+    :param filename: base filename for the document
     :type filename: path-like
 
-    :return: True if created else False
-    :rtype: bool
+    :return: True if document is certificate, else False (intermediary result) and filename of the document
+    :rtype: bool, str
     """
     msg_prefix = f"test_id '{base_info['test_id']}'"
     logger.debug(f"{msg_prefix}: Start creating certificate with scores: {axis_scores}")
@@ -264,7 +264,6 @@ def _generate_certificate(base_dict, axis_scores, base_info, chart_file, filenam
         grade = c.grade_bronze
     else:
         grade = ""
-        # return False
 
     # Create test case table entries
     test_bed = _get_testbed_name(base_info['testbed_id'])
@@ -307,7 +306,18 @@ def _generate_certificate(base_dict, axis_scores, base_info, chart_file, filenam
 
     current_date = date.today().strftime(c.sign_date_format)
     tc_link = f"{c.cicd_service_page}?test_id={base_info['test_id']}&access_token={base_info['access_token']}"
-    with open(c.cert_template, 'r', encoding='utf-8') as f:
+    if grade:
+        template_file = c.cert_template
+        doc_type = 'Certificate'
+        is_cert = True
+        doc_filename = f'certificate_{filename}'
+    else:
+        template_file = c.cert_failed_template
+        is_cert = False
+        doc_type = 'Intermediary result'
+        doc_filename = f'result_{filename}'
+
+    with open(template_file, 'r', encoding='utf-8') as f:
         template = string.Template(f.read())
     cert = template.substitute(
         grade=grade,
@@ -320,11 +330,11 @@ def _generate_certificate(base_dict, axis_scores, base_info, chart_file, filenam
         env_info=Markup(base_info['service_order']),
         sign_date=current_date,
     )
-    file = os.path.join(c.cert_files_dir, filename)
+    file = os.path.join(c.cert_files_dir, f'{doc_filename}.html')
     with open(file, 'w', encoding='utf-8') as f:
         f.write(cert)
-    logger.debug(f"{msg_prefix}: Certificate created")
-    return True
+    logger.debug(f"{msg_prefix}: {doc_type} created")
+    return is_cert, doc_filename
 
 
 def get_test_info(info_type, test_id, access_token):
@@ -387,8 +397,9 @@ def create_certificate(base_info, results, test_cases):
     :param test_cases: test case info
     :type test_cases: dict
 
-    :return: If successful, return filenames of radar chart and certificate file. Otherwise, return an error message.
-    :rtype: (str, str) or str or None
+    :return: If successful, return if the document is a certificate and the filenames of radar chart and document.
+             Otherwise, return an error message.
+    :rtype: (bool, str, str) or str
     """
     base_dict, err_msg = _build_base_dictionary(base_info, results, test_cases)
     if err_msg:
@@ -396,13 +407,14 @@ def create_certificate(base_info, results, test_cases):
     scores = _calculate_axis_scores(base_dict)
     radar_chart = f"{base_info['test_id']}_radar_chart.png"
     _create_radar_chart(scores, radar_chart)
-    cert_filename = f"certificate_{base_info['netapp_id']}_{base_info['app_version']}"
-    cert_html = os.path.join(c.cert_files_dir, f'{cert_filename}.html')
-    cert_pdf = os.path.join(c.cert_files_dir, f'{cert_filename}.pdf')
-    ok = _generate_certificate(base_dict, scores, base_info, radar_chart, cert_html)
-    if ok:
-        HTML(filename=cert_html).write_pdf(cert_pdf)
-        os.remove(cert_html)
-        return radar_chart, cert_filename
+    filename_base = f"{base_info['netapp_id']}_{base_info['app_version']}"
+    is_cert, filename = _generate_certificate(base_dict, scores, base_info, radar_chart, filename_base)
+
+    doc_html = os.path.join(c.cert_files_dir, f'{filename}.html')
+    doc_pdf = os.path.join(c.cert_files_dir, f'{filename}.pdf')
+    if os.path.isfile(doc_html):
+        HTML(filename=doc_html).write_pdf(doc_pdf)
+        os.remove(doc_html)
+        return is_cert, radar_chart, filename
     else:
-        return None
+        return "Unexpected error, could not find the certificate or result file."
