@@ -96,7 +96,7 @@ def get_cert(test_id, access_token):  # noqa: E501
 
     :rtype: str
     """
-    if mRedis.exists(test_id) and int(mRedis.get(f"{test_id}_status").decode()) == c.status_finished:
+    if mRedis.exists(test_id) and int(mRedis.get(f"{test_id}_status").decode()) in [c.status_finished, c.status_finished_no_cert]:
         if access_token == mRedis.get(f"{test_id}_access_token").decode():
             pdf_file = mRedis.get(f"{test_id}_cert").decode() 
             file_path = os.path.join(c.cert_files_dir, pdf_file)
