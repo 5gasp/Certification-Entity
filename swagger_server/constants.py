@@ -30,6 +30,20 @@ axis_names = {
     axis_4: 'Availability & Continuity',
 }
 
+# Test conditions
+test_conditions = {
+    1: 'NEF support',
+    2: 'Location-based app',
+    3: 'Mobility-based app',
+    4: 'Premium QoS app',
+    5: 'Deployment type VM',
+    6: 'Deployment type Container',
+    7: 'Data plane app',
+    8: 'Application layer traffic',
+    9: 'Scalable on the number of users',
+    10: 'Scalable on the number of Network Application instances',
+}
+
 # Certification grades, score can be in range [1, 10]
 # The minimum score that must be achieved for each axis to obtain a certain grade.
 score_bronze = 1

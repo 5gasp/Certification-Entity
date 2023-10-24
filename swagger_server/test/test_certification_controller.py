@@ -8,6 +8,7 @@ from six import BytesIO
 from swagger_server.models.cert_created import CertCreated  # noqa: E501
 from swagger_server.models.create_cert import CreateCert  # noqa: E501
 from swagger_server.models.server_info import ServerInfo  # noqa: E501
+from swagger_server.models.test_case_list import TestCaseList  # noqa: E501
 from swagger_server.test import BaseTestCase
 
 
@@ -50,6 +51,20 @@ class TestCertificationController(BaseTestCase):
         response = self.client.open(
             '/',
             method='GET')
+        self.assert200(response,
+                       'Response body is : ' + response.data.decode('utf-8'))
+
+    def test_get_test_cases(self):
+        """Test case for get_test_cases
+
+        Get the list of mandatory and conditional mandatory test cases for a specified set of test conditions. If no conditions are specified, the list contains only mandatory test cases.
+        """
+        query_string = [('test_bed', 'test_bed_example'),
+                        ('test_conditions', 'test_conditions_example')]
+        response = self.client.open(
+            '/test_cases',
+            method='GET',
+            query_string=query_string)
         self.assert200(response,
                        'Response body is : ' + response.data.decode('utf-8'))
 

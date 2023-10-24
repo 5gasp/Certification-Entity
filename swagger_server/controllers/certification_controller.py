@@ -10,6 +10,7 @@ from swagger_server import util
 from swagger_server.models.cert_created import CertCreated  # noqa: E501
 from swagger_server.models.create_cert import CreateCert  # noqa: E501
 from swagger_server.models.server_info import ServerInfo  # noqa: E501
+from swagger_server.models.test_case_list import TestCaseList  # noqa: E501
 
 # get location variable
 API_CERTIFICATE_ENDPOINT = os.environ.get('API_CERTIFICATE_ENDPOINT')
@@ -56,6 +57,7 @@ def create_cert(body):  # noqa: E501
                 'app_version': body.app_version,
                 'app_author': body.app_author,
                 'service_order': body.service_order,
+                'test_conditions': body.test_conditions,
             })
             # Create certificate
             output = cert.create_certificate(base_info, results, test_cases)
@@ -119,3 +121,31 @@ def get_server_info():  # noqa: E501
         'name': c.server_name,
         'version': c.version,
     }
+
+
+def get_test_cases(test_bed, test_conditions=None):  # noqa: E501
+    """Get the list of mandatory and conditional mandatory test cases for a specified set of test conditions.
+    If no conditions are specified, the list contains only mandatory test cases.
+
+     # noqa: E501
+
+    :param test_bed: Test bed ID for which to get the test cases
+    :type test_bed: str
+    :param test_conditions: List of test conditions delimited by comma. The mapping is as follows:
+        1) NEF support, 2) Location-based app, 3) Mobility-based app, 4) Premium QoS app, 5) Deployment type VM,
+        6) Deployment type Container, 7) Data plane app, 8) Application layer traffic,
+        9) Scalable on the number of users, 10) Scalable on the number of Network Application instances.
+    :type test_conditions: str
+
+    :rtype: TestCaseList
+    """
+    try:
+        condition_list = [int(x) for x in test_conditions.split(',')] if test_conditions else []
+    except ValueError:
+        return "List of conditions must be a string of integers delimited by comma, e.g. '1,2,3'.", 400
+    else:
+        output, err_msg = cert.get_test_cases(condition_list, test_bed)
+        if err_msg:
+            return err_msg, 404
+        else:
+            return {'test_cases': output}, 200

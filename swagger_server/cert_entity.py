@@ -35,9 +35,10 @@ def _get_testbed_name(id_):
     return id_
 
 
-def _build_base_dictionary(base_info, results, test_cases):
-    """Check for the required data in the responses from the CI/CD Manager. Build the base dictionary with this
-    structure:
+def _build_base_dictionary(base_info, results, test_cases, cert_tc_list):
+    """Check for the required data in the responses from the CI/CD Manager.
+    Only keep the test results of test cases required for the certification (based on the app's selected conditions).
+    Build the base dictionary with this structure:
     axis:
         test_case:
             weight: int
@@ -53,8 +54,10 @@ def _build_base_dictionary(base_info, results, test_cases):
     :type base_info: dict
     :param results: test results
     :type results: dict
-    :param test_cases: test case info
+    :param test_cases: general test case info
     :type test_cases: dict
+    :param cert_tc_list: list of tests required for certification
+    :type cert_tc_list: list[str]
 
     :return: base dictionary, error message
     :rtype: dict, str
@@ -78,7 +81,9 @@ def _build_base_dictionary(base_info, results, test_cases):
     }
     err_msg = []
     msg_tc = "For test case '{0}': Could not find the key '{1}' or its value '{2}' is invalid."
-    for test, info in test_cases.items():
+    for test in cert_tc_list:
+        info = test_cases.get(test, {})
+        # Sort test cases into groups based on axis
         axis = info.get('axis')
         if axis not in c.axis_names:
             err_msg.append(msg_tc.format(test, 'axis', axis))
@@ -114,13 +119,14 @@ def _build_base_dictionary(base_info, results, test_cases):
             err_msg.append(msg_result.format(performed, 'original_test_name', tc_id))
         else:
             tc = test_cases.get(tc_id)
-            if tc:
+            # Save result if test is required for certification
+            if tc and tc_id in cert_tc_list:
                 axis = tc.get('axis')
                 tmp_dict = base_dict.get(axis, {}).get(tc_id, {})
                 tmp_dict['start_time'] = start_time
                 tmp_result = tmp_dict.get('results', [])
                 tmp_result.append(tc_result)
-            else:
+            elif not tc:
                 err_msg.append(f"Could not find test '{tc_id}' in test case database (/tests/all).")
 
     return base_dict, ' '.join(err_msg)
@@ -319,11 +325,20 @@ def _generate_certificate(base_dict, axis_scores, base_info, chart_file, filenam
 
     with open(template_file, 'r', encoding='utf-8') as f:
         template = string.Template(f.read())
+    # Generate certificate part for test conditions
+    condition_names = [c.test_conditions.get(x, 'Undefined') for x in base_info['test_conditions']]
+    condition_str = [f'<i>{x}</i><br>' for x in sorted(condition_names)]
+    has_conditions = f"""\
+<p>Under the test conditions</p>
+<ul>{''.join(condition_str)}</ul>
+"""
+    no_conditions = "<p>With no selected test conditions</p>"
     cert = template.substitute(
         grade=grade,
         app_name=base_info['app_name'],
         app_version=base_info['app_version'],
         author=base_info['app_author'],
+        conditions=has_conditions if base_info['test_conditions'] else no_conditions,
         chart=chart_file,
         test_cases=''.join(rows),
         tc_link=Markup(tc_link),
@@ -387,6 +402,31 @@ def get_test_info(info_type, test_id, access_token):
     return {}, err_msg
 
 
+def get_test_cases(test_conditions, test_bed):
+    """Return a list of test case IDs according to the specified test conditions. If an error, return None."""
+    test_cases, err_msg = get_test_info('test_cases', -1, '')
+    if test_cases:
+        tc_data = test_cases.get('tests', {}).get(test_bed, {})
+        if tc_data:
+            final_list = []
+            if len(test_conditions) == 0:
+                final_list = [v.get('id') for k, v in tc_data.items() if v.get('mandatory') is True]
+            else:
+                conditions_set = set(test_conditions)
+                for _, test_data in tc_data.items():
+                    if test_data.get('mandatory') is True:
+                        final_list.append(test_data.get('id'))
+                    else:
+                        tc_cond = set(test_data.get('test_conditions', []))
+                        if tc_cond and tc_cond.issubset(conditions_set):
+                            final_list.append(test_data.get('id'))
+            return final_list, ""
+        else:
+            return [], f"No test cases found for test bed '{test_bed}'."
+    else:
+        return [], err_msg
+
+
 def create_certificate(base_info, results, test_cases):
     """Create a certificate for the given testing instance.
 
@@ -401,7 +441,9 @@ def create_certificate(base_info, results, test_cases):
              Otherwise, return an error message.
     :rtype: (bool, str, str) or str
     """
-    base_dict, err_msg = _build_base_dictionary(base_info, results, test_cases)
+    cert_tc_list, _ = get_test_cases(base_info['test_conditions'], base_info.get('testbed_id'))
+    logger.debug(f"test_id {base_info['test_id']}: Certificate test list: {cert_tc_list}")
+    base_dict, err_msg = _build_base_dictionary(base_info, results, test_cases, cert_tc_list)
     if err_msg:
         return err_msg
     scores = _calculate_axis_scores(base_dict)

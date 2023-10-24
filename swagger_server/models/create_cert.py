@@ -15,7 +15,7 @@ class CreateCert(Model):
     Do not edit the class manually.
     """
     def __init__(self, test_id: int=None, access_token: str=None, app_name: str=None, app_version: str=None,
-                 app_author: str=None, service_order: str=None):  # noqa: E501
+                 app_author: str=None, service_order: str=None, test_conditions: List[int]=None):  # noqa: E501
         """CreateCert - a model defined in Swagger
 
         :param test_id: The test_id of this CreateCert.  # noqa: E501
@@ -30,6 +30,8 @@ class CreateCert(Model):
         :type app_author: str
         :param service_order: The service_order of this CreateCert.  # noqa: E501
         :type service_order: str
+        :param test_conditions: The test_conditions of this CreateCert.  # noqa: E501
+        :type test_conditions: List[int]
         """
         self.swagger_types = {
             'test_id': int,
@@ -37,7 +39,8 @@ class CreateCert(Model):
             'app_name': str,
             'app_version': str,
             'app_author': str,
-            'service_order': str
+            'service_order': str,
+            'test_conditions': List[int]
         }
 
         self.attribute_map = {
@@ -46,7 +49,8 @@ class CreateCert(Model):
             'app_name': 'app_name',
             'app_version': 'app_version',
             'app_author': 'app_author',
-            'service_order': 'service_order'
+            'service_order': 'service_order',
+            'test_conditions': 'test_conditions'
         }
         self._test_id = test_id
         self._access_token = access_token
@@ -54,6 +58,7 @@ class CreateCert(Model):
         self._app_version = app_version
         self._app_author = app_author
         self._service_order = service_order
+        self._test_conditions = test_conditions
 
     @classmethod
     def from_dict(cls, dikt) -> 'CreateCert':
@@ -215,3 +220,28 @@ class CreateCert(Model):
             raise ValueError("Invalid value for `service_order`, must not be `None`")  # noqa: E501
 
         self._service_order = service_order
+
+    @property
+    def test_conditions(self) -> List[int]:
+        """Gets the test_conditions of this CreateCert.
+
+        List of test conditions with the following mapping: 1) NEF support, 2) Location-based app, 3) Mobility-based app, 4) Premium QoS app, 5) Deployment type VM, 6) Deployment type Container, 7) Data plane app, 8) Application layer traffic, 9) Scalable on the number of users, 10) Scalable on the number of Network Application instances.   # noqa: E501
+
+        :return: The test_conditions of this CreateCert.
+        :rtype: List[int]
+        """
+        return self._test_conditions
+
+    @test_conditions.setter
+    def test_conditions(self, test_conditions: List[int]):
+        """Sets the test_conditions of this CreateCert.
+
+        List of test conditions with the following mapping: 1) NEF support, 2) Location-based app, 3) Mobility-based app, 4) Premium QoS app, 5) Deployment type VM, 6) Deployment type Container, 7) Data plane app, 8) Application layer traffic, 9) Scalable on the number of users, 10) Scalable on the number of Network Application instances.   # noqa: E501
+
+        :param test_conditions: The test_conditions of this CreateCert.
+        :type test_conditions: List[int]
+        """
+        if test_conditions is None:
+            raise ValueError("Invalid value for `test_conditions`, must not be `None`")  # noqa: E501
+
+        self._test_conditions = test_conditions

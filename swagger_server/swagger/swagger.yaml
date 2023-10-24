@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: Certification Entity API
   description: REST API of the 5GASP Certification Entity
-  version: "0.3"
+  version: "0.4"
 servers:
 - url: /
 tags:
@@ -74,11 +74,8 @@ paths:
               $ref: '#/components/schemas/CreateCert'
         required: true
       responses:
-        "200":
-          description: "Request has been executed, but the certificate will not be\
-            \ created. The minimum grade of bronze was not achieved."
         "201":
-          description: Certificate has been created
+          description: Certificate or intermediary result has been created
           content:
             application/json:
               schema:
@@ -93,6 +90,48 @@ paths:
           description: Could not save certificate
       security:
       - basicAuth: []
+      x-openapi-router-controller: swagger_server.controllers.certification_controller
+  /test_cases:
+    get:
+      tags:
+      - certification
+      summary: "Get the list of mandatory and conditional mandatory test cases for\
+        \ a specified set of test conditions. If no conditions are specified, the\
+        \ list contains only mandatory test cases."
+      operationId: get_test_cases
+      parameters:
+      - name: test_bed
+        in: query
+        description: Test bed ID for which to get the test cases
+        required: true
+        style: form
+        explode: true
+        schema:
+          title: test_bed
+          type: string
+        example: testbed_itav
+      - name: test_conditions
+        in: query
+        description: |
+          List of test conditions delimited by comma. The mapping is as follows: 1) NEF support, 2) Location-based app, 3) Mobility-based app, 4) Premium QoS app, 5) Deployment type VM, 6) Deployment type Container, 7) Data plane app, 8) Application layer traffic, 9) Scalable on the number of users, 10) Scalable on the number of Network Application instances.
+        required: false
+        style: form
+        explode: true
+        schema:
+          title: test_conditions
+          type: string
+        example: "1,2,3"
+      responses:
+        "200":
+          description: Test case list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TestCaseList'
+        "400":
+          description: Test bed ID incorrect or list of conditions formatted incorrectly
+        "404":
+          description: Could not fetch test case data
       x-openapi-router-controller: swagger_server.controllers.certification_controller
 components:
   schemas:
@@ -113,6 +152,7 @@ components:
       - app_name
       - app_version
       - service_order
+      - test_conditions
       - test_id
       type: object
       properties:
@@ -135,15 +175,34 @@ components:
         service_order:
           type: string
           description: Link to the service order of the Network App on NODS
+        test_conditions:
+          type: array
+          description: |
+            List of test conditions with the following mapping: 1) NEF support, 2) Location-based app, 3) Mobility-based app, 4) Premium QoS app, 5) Deployment type VM, 6) Deployment type Container, 7) Data plane app, 8) Application layer traffic, 9) Scalable on the number of users, 10) Scalable on the number of Network Application instances.
+          items:
+            type: integer
     CertCreated:
       type: object
       properties:
         certificate:
           type: string
           description: URL pointing to the certificate
+      example:
+        certificate: certificate
+    TestCaseList:
+      type: object
+      properties:
+        test_cases:
+          type: array
+          description: List of test case IDs
+          items:
+            type: integer
+      example:
+        test_cases:
+        - 0
+        - 0
   securitySchemes:
     basicAuth:
       type: http
       scheme: basic
       x-basicInfoFunc: swagger_server.controllers.authorization_controller.check_basicAuth
-
