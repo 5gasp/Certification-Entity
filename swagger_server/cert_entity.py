@@ -135,17 +135,20 @@ def _build_base_dictionary(base_info, results, test_cases, cert_tc_list):
 def _calculate_axis_scores(base_dict):
     """Calculate the score for each axis and return as dictionary. The score is calculated in the following way:
     A) If all mandatory tests are passed, the result is 1, otherwise it is 0.
-    B) Calculate the weighted average for the executed optional tests.
+    B) Calculate the weighted average for the executed conditional tests.
     To get the final axis score, multiply A and B.
+    If no mandatory test exists and no conditional test was applied for an axis,
+    set -1 to indicate that this axis can be ignored for grading.
 
     :param base_dict: dictionary from _build_base_dictionary()
     :type base_dict: dict
 
-    :return: dictionary of axis scores
-    :rtype: dict
+    :return: dictionary of axis scores, dictionary of minimum requirements
+    :rtype: (dict, dict)
     """
     logger.debug("Calculate axis scores")
     axis_scores = {}
+    min_req = {}
     for axis, tests in base_dict.items():
         m_num_tests = 0
         m_num_passed = 0
@@ -166,13 +169,20 @@ def _calculate_axis_scores(base_dict):
                 else:
                     o_result_sum = o_result_sum + info['weight']
 
-        m_score = c.weight_mandatory if m_num_tests and m_num_tests == m_num_passed else 0
-        o_score = (o_result_sum / o_weight_sum) * c.weight_optional if o_result_sum else 1
-        axis_scores.update({axis: m_score * o_score})
-    return axis_scores
+        # No required tests, set axis score to -1
+        logger.debug(f"--- Axis: {axis}, mandatory tests number: {m_num_passed}/{m_num_tests}, "
+                     f"conditional test weights: {o_result_sum}/{o_weight_sum}")
+        if m_num_tests == 0 and o_weight_sum == 0:
+            axis_scores.update({axis: -1})
+        else:
+            m_score = c.weight_mandatory if m_num_tests == m_num_passed else 0
+            o_score = (o_result_sum / o_weight_sum) * c.weight_optional if o_result_sum else 1
+            axis_scores.update({axis: m_score * o_score})
+        min_req.update({axis: c.weight_mandatory if m_num_tests else 0})
+    return axis_scores, min_req
 
 
-def _create_radar_chart(axis_scores, filename, show_min=True):
+def _create_radar_chart(axis_scores, filename, show_min=None):
     """Plot a radar chart with the given scores.
     https://www.pythoncharts.com/matplotlib/radar-charts/
 
@@ -180,8 +190,8 @@ def _create_radar_chart(axis_scores, filename, show_min=True):
     :type axis_scores: dict
     :param filename: filename for the chart
     :type filename: str
-    :param show_min: set True to draw minimum requirements in the chart
-    :type show_min: bool
+    :param show_min: dictionary for drawing minimum requirements in the chart
+    :type show_min: dict
     """
     logger.debug(f"Create radar chart '{filename}'")
     matplotlib.use('Agg')  # non-interactive backend
@@ -200,12 +210,12 @@ def _create_radar_chart(axis_scores, filename, show_min=True):
     draw_angles.append(angles[0])
     # Draw minimum requirements
     if show_min:
-        min_values = [c.min_requirements.get(x, 0) for x in axis_scores.keys()]
+        min_values = [show_min.get(x, 0) for x in axis_scores.keys()]
         min_values.append(min_values[0])
         ax.plot(draw_angles, min_values, color='orange', linewidth=1, label='Minimum requirements')
         ax.fill(draw_angles, min_values, color='orange', alpha=0.25)
     # Draw scores
-    draw_m_values = scores[:]
+    draw_m_values = [x if x >= 0 else 0 for x in scores]
     draw_m_values.append(scores[0])
     ax.plot(draw_angles, draw_m_values, color='blue', linewidth=2, label='Achieved score')
     ax.fill(draw_angles, draw_m_values, color='blue', alpha=0.25)
@@ -244,7 +254,7 @@ def _generate_certificate(base_dict, axis_scores, base_info, chart_file, filenam
 
     :param base_dict: dictionary from _build_base_dictionary()
     :type base_dict: dict
-    :param axis_scores: dictionary from _calculate_axis_scores()
+    :param axis_scores: score dictionary from _calculate_axis_scores()
     :type axis_scores: dict
     :param base_info: basic info about the testing
     :type base_info: dict
@@ -258,15 +268,15 @@ def _generate_certificate(base_dict, axis_scores, base_info, chart_file, filenam
     """
     msg_prefix = f"test_id '{base_info['test_id']}'"
     logger.debug(f"{msg_prefix}: Start creating certificate with scores: {axis_scores}")
-    # Determine grade
-    gold = [True for k, v in axis_scores.items() if v >= c.score_gold]
-    silver = [True for k, v in axis_scores.items() if v >= c.score_silver]
-    bronze = [True for k, v in axis_scores.items() if v >= c.score_bronze]
-    if len(gold) > 0 and all(gold):
+    # Determine grade (if score is -1, ignore this axis for grading)
+    gold = [True if v >= c.score_gold or v == -1 else False for k, v in axis_scores.items()]
+    silver = [True if v >= c.score_silver or v == -1 else False for k, v in axis_scores.items()]
+    bronze = [True if v >= c.score_bronze or v == -1 else False for k, v in axis_scores.items()]
+    if all(gold):
         grade = c.grade_gold
-    elif len(silver) > 0 and all(silver):
+    elif all(silver):
         grade = c.grade_silver
-    elif len(bronze) > 0 and all(bronze):
+    elif all(bronze):
         grade = c.grade_bronze
     else:
         grade = ""
@@ -287,9 +297,6 @@ def _generate_certificate(base_dict, axis_scores, base_info, chart_file, filenam
     for axis, tests in base_dict.items():
         for test, info in tests.items():
             is_mandatory = info['mandatory']
-            # Skip optional tests that were not executed
-            if len(info['results']) == 0 and not is_mandatory:
-                continue
             if len(info['results']) == 0:
                 result = 'Not tested'
                 colour = c.grey
@@ -303,7 +310,7 @@ def _generate_certificate(base_dict, axis_scores, base_info, chart_file, filenam
                 info['start_time'],
                 c.axis_names[axis],
                 test,
-                'Mandatory' if is_mandatory else 'Optional',
+                'Mandatory' if is_mandatory else 'Conditional',
                 test_bed,
                 result,
                 colour=colour,
@@ -402,8 +409,47 @@ def get_test_info(info_type, test_id, access_token):
     return {}, err_msg
 
 
+def get_test_conditions(results, test_data, test_bed):
+    """Get the selected test conditions by checking which tests were performed.
+
+    :param results: performed tests
+    :type results: list[dict]
+    :param test_data: test case info of a test bed
+    :type test_data: dict
+    :param test_bed: test bed ID
+    :type test_bed: str
+
+    :return: list of test conditions
+    :rtype: list[int]
+    """
+    conditions = []
+    test_bed_tests = test_data.get('tests', {}).get(test_bed)
+    if not test_bed_tests:
+        logger.warn(f"No test cases were found for test bed ID '{test_bed}' in data from /tests/all.")
+        return []
+    for result in results:
+        test_id = result.get('original_test_name')
+        if test_id == 'developer-defined':
+            continue
+        test_case = test_bed_tests.get(test_id)
+        if test_case:
+            conditions.extend(test_case.get('test_conditions', []))
+        else:
+            logger.warn(f"Test case '{test_id}' not found in test info for test bed '{test_bed}'.")
+    return sorted(set(conditions))
+
+
 def get_test_cases(test_conditions, test_bed):
-    """Return a list of test case IDs according to the specified test conditions. If an error, return None."""
+    """Return a list of test case IDs according to the specified test conditions.
+
+    :param test_conditions: list of test conditions
+    :type test_conditions: list[int]
+    :param test_bed: test bed ID
+    :type test_bed: str
+
+    :return: list of test case IDs and error message if an error occurred
+    :rtype: (list[str], str)
+    """
     test_cases, err_msg = get_test_info('test_cases', -1, '')
     if test_cases:
         tc_data = test_cases.get('tests', {}).get(test_bed, {})
@@ -446,9 +492,9 @@ def create_certificate(base_info, results, test_cases):
     base_dict, err_msg = _build_base_dictionary(base_info, results, test_cases, cert_tc_list)
     if err_msg:
         return err_msg
-    scores = _calculate_axis_scores(base_dict)
+    scores, m_min_req = _calculate_axis_scores(base_dict)
     radar_chart = f"{base_info['test_id']}_radar_chart.png"
-    _create_radar_chart(scores, radar_chart)
+    _create_radar_chart(scores, radar_chart, show_min=m_min_req)
     filename_base = f"{base_info['netapp_id']}_{base_info['app_version']}"
     is_cert, filename = _generate_certificate(base_dict, scores, base_info, radar_chart, filename_base)
 

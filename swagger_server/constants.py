@@ -56,13 +56,6 @@ grade_gold = 'Gold'
 # Weight for category
 weight_mandatory = 1
 weight_optional = 10
-# Minimum requirements
-min_requirements = {
-    axis_1: weight_mandatory,
-    axis_2: weight_mandatory,
-    axis_3: weight_mandatory,
-    axis_4: weight_mandatory,
-}
 
 # Colours for test result column
 green = '#27ae60'

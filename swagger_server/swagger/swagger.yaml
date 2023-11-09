@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: Certification Entity API
   description: REST API of the 5GASP Certification Entity
-  version: "0.4"
+  version: "0.5"
 servers:
 - url: /
 tags:
@@ -152,7 +152,6 @@ components:
       - app_name
       - app_version
       - service_order
-      - test_conditions
       - test_id
       type: object
       properties:
@@ -175,12 +174,6 @@ components:
         service_order:
           type: string
           description: Link to the service order of the Network App on NODS
-        test_conditions:
-          type: array
-          description: |
-            List of test conditions with the following mapping: 1) NEF support, 2) Location-based app, 3) Mobility-based app, 4) Premium QoS app, 5) Deployment type VM, 6) Deployment type Container, 7) Data plane app, 8) Application layer traffic, 9) Scalable on the number of users, 10) Scalable on the number of Network Application instances.
-          items:
-            type: integer
     CertCreated:
       type: object
       properties:

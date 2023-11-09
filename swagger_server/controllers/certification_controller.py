@@ -31,8 +31,9 @@ def create_cert(body):  # noqa: E501
         if mRedis.exists(body.test_id):
             if int(mRedis.get(f"{body.test_id}_status").decode()) == c.status_finished:
                 # API_CERTIFICATE_ENDPOINT overrides the base url
-                url = f"{API_CERTIFICATE_ENDPOINT or request.base_url}?test_id={body.test_id}&access_token={body.access_token}"
-                return {"message":"The certificate for this ID has already been created.", "certificate": url}, 208
+                url = (f"{API_CERTIFICATE_ENDPOINT or request.base_url}?test_id={body.test_id}"
+                       f"&access_token={body.access_token}")
+                return {"message": "The certificate for this ID has already been created.", "certificate": url}, 208
             elif int(mRedis.get(f"{body.test_id}_status").decode()) == c.status_progress:
                 return "This certificate is currently being created, please wait.", 208
 
@@ -43,27 +44,28 @@ def create_cert(body):  # noqa: E501
         mRedis.set(body.test_id, "")
         mRedis.set(f"{body.test_id}_access_token", body.access_token)
         mRedis.set(f"{body.test_id}_status", c.status_progress)
-        
-        
+
         # Get all required data
         base_info, err_msg_1 = cert.get_test_info('base', body.test_id, body.access_token)
         results, err_msg_2 = cert.get_test_info('results', body.test_id, body.access_token)
         test_cases, err_msg_3 = cert.get_test_info('test_cases', body.test_id, body.access_token)
         if all([base_info, results, test_cases]):
             logger.debug(f"{msg_prefix}: All required info retrieved")
+            conditions = cert.get_test_conditions(results, test_cases, base_info['testbed_id'])
             base_info.update({
                 'access_token': body.access_token,
                 'app_name': body.app_name,
                 'app_version': body.app_version,
                 'app_author': body.app_author,
                 'service_order': body.service_order,
-                'test_conditions': body.test_conditions,
+                'test_conditions': conditions,
             })
             # Create certificate
             output = cert.create_certificate(base_info, results, test_cases)
             if isinstance(output, str):
                 # Redis
                 mRedis.set(f"{body.test_id}_status", c.status_error)
+                logger.error(f"{msg_prefix}: Failed to create certificate, {output}")
                 return output, 404
             elif output:
                 is_cert, radar_chart, cert_file = output
@@ -74,16 +76,21 @@ def create_cert(body):  # noqa: E501
                 mRedis.set(f"{body.test_id}_chart", radar_chart)
                 
                 # API_CERTIFICATE_ENDPOINT overrides the base url
-                url = f"{API_CERTIFICATE_ENDPOINT or request.base_url}?test_id={body.test_id}&access_token={body.access_token}"
+                url = (f"{API_CERTIFICATE_ENDPOINT or request.base_url}?test_id={body.test_id}"
+                       f"&access_token={body.access_token}")
+                logger.info(f"{msg_prefix}: Finished creating certificate")
                 return {'certificate': url}, 200
             else:
                 mRedis.set(f"{body.test_id}_status", c.status_error)
+                logger.error(f"{msg_prefix}: Failed to create certificate, unexpected error occurred")
                 return "Unexpected error occurred while creating certificate.", 500
         else:
             all_err_msg = ' '.join([err_msg_1, err_msg_2, err_msg_3])
             mRedis.set(f"{body.test_id}_status", c.status_error)
-            return (f"Could not fetch all required data from the CI/CD Manager to create the certificate: "
-                    f"{all_err_msg}"), 404
+            err_msg = (f"Could not fetch all required data from the CI/CD Manager to create the certificate: "
+                       f"{all_err_msg}")
+            logger.error(f"{msg_prefix}: {err_msg}")
+            return err_msg, 404
 
 
 def get_cert(test_id, access_token):  # noqa: E501
@@ -98,7 +105,8 @@ def get_cert(test_id, access_token):  # noqa: E501
 
     :rtype: str
     """
-    if mRedis.exists(test_id) and int(mRedis.get(f"{test_id}_status").decode()) in [c.status_finished, c.status_finished_no_cert]:
+    if (mRedis.exists(test_id) and int(mRedis.get(f"{test_id}_status").decode()) in 
+            [c.status_finished, c.status_finished_no_cert]):
         if access_token == mRedis.get(f"{test_id}_access_token").decode():
             pdf_file = mRedis.get(f"{test_id}_cert").decode() 
             file_path = os.path.join(c.cert_files_dir, pdf_file)
