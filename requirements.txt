@@ -1,8 +1,8 @@
-connexion >= 2.6.0
-connexion[swagger-ui] >= 2.6.0
+connexion >= 2.6.0,< 3.0.0
+connexion[swagger-ui] >= 2.6.0,< 3.0.0
 python_dateutil == 2.6.0
 setuptools >= 21.0.0
-swagger-ui-bundle >= 0.0.2
+swagger-ui-bundle >= 0.0.2,< 1.0.0
 # custom
 matplotlib >= 3.3.4
 numpy >= 1.19.5
