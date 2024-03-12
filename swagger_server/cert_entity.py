@@ -3,7 +3,7 @@
 """
 import os
 import string
-from datetime import date
+from datetime import date, datetime, timedelta
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -94,6 +94,7 @@ def _build_base_dictionary(base_info, results, test_cases, cert_tc_list):
         if not isinstance(mandatory, bool):
             err_msg.append(msg_tc.format(test, 'mandatory', mandatory))
         tc_info = {
+            'name': info.get('name', ''),
             'weight': weight,
             'mandatory': mandatory,
             'results': [],
@@ -103,6 +104,7 @@ def _build_base_dictionary(base_info, results, test_cases, cert_tc_list):
         tmp_dict.update({test: tc_info})
         base_dict.update({axis: tmp_dict})
 
+    all_timestamps = []
     msg_result = "For test result '{0}': Could not find the key '{1}' or its value '{2}' is invalid."
     for test in results:
         if test.get('is_developer_defined'):
@@ -114,6 +116,8 @@ def _build_base_dictionary(base_info, results, test_cases, cert_tc_list):
         start_time = test.get('start_time')
         if not start_time:
             err_msg.append(msg_result.format(performed, 'start_time', start_time))
+        else:
+            all_timestamps.append(start_time)
         tc_id = test.get('original_test_name')
         if not tc_id:
             err_msg.append(msg_result.format(performed, 'original_test_name', tc_id))
@@ -128,6 +132,20 @@ def _build_base_dictionary(base_info, results, test_cases, cert_tc_list):
                 tmp_result.append(tc_result)
             elif not tc:
                 err_msg.append(f"Could not find test '{tc_id}' in test case database (/tests/all).")
+
+    # Automatically pass selected onboarding tests
+    timestamps = [datetime.strptime(x, c.cicd_date_format) for x in all_timestamps]
+    timestamps.sort()
+    onboard_time = timestamps[0] if timestamps else ''
+    if onboard_time:
+        onboard_time = onboard_time - timedelta(minutes=c.onboard_time_offset)
+        onboard_time = onboard_time.strftime(c.cicd_date_format)
+    for tc_id in c.onboarding_tests:
+        tc = test_cases.get(tc_id)
+        axis = tc.get('axis')
+        tmp_dict = base_dict.get(axis, {}).get(tc_id, {})
+        tmp_dict['start_time'] = onboard_time
+        tmp_dict['results'] = [True]
 
     return base_dict, ' '.join(err_msg)
 
@@ -309,7 +327,7 @@ def _generate_certificate(base_dict, axis_scores, base_info, chart_file, filenam
             row = row_format.format(
                 info['start_time'],
                 c.axis_names[axis],
-                test,
+                info['name'],
                 'Mandatory' if is_mandatory else 'Conditional',
                 test_bed,
                 result,

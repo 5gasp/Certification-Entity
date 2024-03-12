@@ -14,8 +14,20 @@ users = {
 # Certification
 # ----------
 cicd_manager_base = 'https://ci-cd-manager.5gasp.eu/manager'
-sign_date_format = '%d/%m/%Y'
 cicd_service_page = 'https://ci-cd-service.5gasp.eu/dashboard/test-information.html'
+cicd_date_format = '%Y-%m-%d %H:%M:%S'
+sign_date_format = '%d/%m/%Y'
+
+# Onboarding tests done by NODS
+# If Network Applications select specific test conditions, some tests will be executed by NODS during onboarding.
+# As they must have passed the selected tests to be considered as onboarded, the tests can be automatically assumed
+# as passed by the certification entity (CI/CD Manager does not have results for these tests).
+onboarding_tests = [
+    'network_application_package_integrity_test',
+    'network_application_uses_offered_sec_group_test',
+]
+# For the timestamp in the test case table. Deduct these minute from the earliest test results.
+onboard_time_offset = 2  # minutes
 
 # Test axis numbers
 axis_1 = 1
